@@ -1,22 +1,41 @@
 # Testing Framework Implementation Tasks
 
+## 🎯 Testing Approach: CI/Docker-Only
+
+**Important**: This project uses a CI/Docker-only testing approach. Test dependencies (PHPUnit, Mockery, etc.) are NOT added to composer.json. They are installed dynamically in CI/Docker environments only.
+
+**Benefits**:
+- Clean local development environment
+- Consistent test environments across all developers
+- Isolated test execution
+- Easy reproduction of test failures
+
+**Testing Environments**:
+- **GitHub Actions**: PHPUnit installed during workflow execution
+- **Docker**: PHPUnit installed in test container images
+
+---
+
 ## 🎯 Phase 1: Foundation (Week 1-2)
 **Status**: 🔴 Not Started | **Priority**: High | **Total Time**: 10 hours
 
-### TASK-1.1: Install PHPUnit as dev dependency
+### TASK-1.1: Configure PHPUnit for CI/Docker testing
 **Status**: 🔴 Not Started | **Priority**: High | **Time**: 30 minutes
 
-**Goal**: Install PHPUnit as dev dependency
+**Goal**: Configure PHPUnit for CI/Docker testing environment
 
 **Description**:
-- Add phpunit/phpunit to composer.json require-dev
-- Choose appropriate version based on PHP 7.1+ support
-- Ensure compatibility with PHP 7.1-8.4
+- Note: PHPUnit is NOT added to composer.json (CI/Docker-only approach)
+- Document PHPUnit version requirements for different PHP versions
+- Update GitHub Actions workflow to install PHPUnit dynamically
+- Create Dockerfile instructions for PHPUnit installation (if using Docker)
+- Ensure PHPUnit 9.5 for PHP 7.3-8.0, PHPUnit 10.0+ for PHP 8.1+
 
 **Acceptance Criteria**:
-- ✅ PHPUnit is added to composer.json
-- ✅ Version is compatible with PHP 7.1+
-- ✅ Composer install/update works successfully
+- ✅ CI workflow installs PHPUnit dynamically based on PHP version
+- ✅ Docker configuration includes PHPUnit installation instructions
+- ✅ PHPUnit version requirements are documented
+- ✅ No test dependencies in main composer.json
 
 **Dependencies**: None
 

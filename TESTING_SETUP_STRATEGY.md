@@ -68,36 +68,41 @@ joomlatools-console/
 
 ## 📦 Test Dependencies
 
-### Required Development Dependencies
-```json
-{
-  "require-dev": {
-    "phpunit/phpunit": "^9.5|^10.0",
-    "mockery/mockery": "^1.5",
-    "fakerphp/faker": "^1.23",
-    "phpstan/phpstan": "^1.10",
-    "squizlabs/php_codesniffer": "^3.7",
-    "vimeo/psalm": "^5.0",
-    "brainmaestro/composer-run parallel": "^2.0"
-  }
-}
+### CI/Docker-Only Testing Approach
+**No test dependencies in composer.json** - PHPUnit and testing tools are installed dynamically in CI/Docker environments only.
+
+### CI/Docker Dependencies
+Testing dependencies are installed in CI/Docker environments via:
+- **GitHub Actions**: Installed during workflow execution
+- **Docker**: Installed in test container images
+
+### Dependencies Installed in CI/Docker
+```yaml
+# GitHub Actions example
+- name: Install PHPUnit
+  run: composer require --dev phpunit/phpunit:^9.5 phpunit/phpunit:^10.0
+
+# Docker example
+RUN composer require --dev phpunit/phpunit:^9.5 phpunit/phpunit:^10.0
 ```
 
 ### Dependency Justification
 - **PHPUnit 9.5+**: Testing framework (supports PHP 7.3-8.4)
   - Use PHPUnit 9.5 for PHP 7.3-8.0
   - Use PHPUnit 10.0+ for PHP 8.1+ (modern PHP features)
-- **Mockery 1.5+**: Mocking framework for external dependencies
-- **Faker 1.23+**: Test data generation
-- **PHPStan 1.10+**: Static analysis
-- **PHP_CodeSniffer 3.7+**: Code style checking
-- **Psalm 5.0+**: Type checking
-- **composer-run-parallel**: Run multiple test suites in parallel
+- **Mockery 1.5+**: Mocking framework for external dependencies (CI/Docker only)
+- **Faker 1.23+**: Test data generation (CI/Docker only)
+- **PHPStan 1.10+**: Static analysis (CI only)
+- **PHP_CodeSniffer 3.7+**: Code style checking (CI only)
+- **Psalm 5.0+**: Type checking (CI only)
 
-### PHPUnit Version Strategy
-Since no single PHPUnit version supports PHP 7.3-8.4, we use conditional versions:
-- **PHP 7.3-8.0**: PHPUnit 9.5.x (stable, well-tested)
-- **PHP 8.1-8.4**: PHPUnit 10.0+ (modern PHP features, better performance)
+### Benefits of CI/Docker-Only Testing
+- ✅ Clean local development environment
+- ✅ No test dependency conflicts in production
+- ✅ Consistent test environments across all developers
+- ✅ Isolated test execution (no local file system pollution)
+- ✅ Easy to reproduce test failures in identical environments
+- ✅ Simplified onboarding for new developers
 
 ---
 
@@ -361,11 +366,12 @@ test:
 
 ### Phase 0: Setup (Immediate)
 1. Create test directory structure
-2. Add test dependencies to composer.json (PHPUnit 9.5|^10.0)
-3. Create phpunit.xml configuration
-4. Create test bootstrap file
-5. Create base TestCase class
-6. Update .gitignore for test artifacts
+2. Create phpunit.xml configuration (for CI/Docker usage)
+3. Create test bootstrap file
+4. Create base TestCase class
+5. Update .gitignore for test artifacts
+6. Create Dockerfile for testing (optional)
+7. Update GitHub Actions workflow for testing
 
 ### Phase 1: Unit Tests (Foundation)
 1. Create unit tests for version detection
@@ -381,6 +387,8 @@ test:
 1. Add static analysis to CI
 2. Optimize test execution with conditional PHPUnit versions
 3. Add coverage reporting
+
+**Note**: All test dependencies are installed in CI/Docker environments only, not in composer.json
 
 ---
 
@@ -409,7 +417,7 @@ test:
 - **Joomla Coverage**: All Joomla versions still supported (3.10, 4.4, 5.4, 6.1)
 - **Symfony Compatibility**: Symfony 4.4 already requires PHP 7.2.5+
 
-**Conclusion**: The trade-off is favorable - we lose two ancient PHP versions but gain significantly simplified testing infrastructure and better overall maintainability.
+**Conclusion**: The trade-off is favorable - we lose two ancient PHP versions but gain significantly simplified testing infrastructure and better overall maintainability. Additionally, CI/Docker-only testing keeps the local development environment clean and ensures consistent test environments.
 
 ---
 
