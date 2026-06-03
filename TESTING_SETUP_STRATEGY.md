@@ -84,13 +84,20 @@ joomlatools-console/
 ```
 
 ### Dependency Justification
-- **PHPUnit 9.5+**: Testing framework (supports PHP 7.1-8.4)
+- **PHPUnit 9.5+**: Testing framework (supports PHP 7.3-8.4)
+  - Use PHPUnit 9.5 for PHP 7.3-8.0
+  - Use PHPUnit 10.0+ for PHP 8.1+ (modern PHP features)
 - **Mockery 1.5+**: Mocking framework for external dependencies
 - **Faker 1.23+**: Test data generation
 - **PHPStan 1.10+**: Static analysis
 - **PHP_CodeSniffer 3.7+**: Code style checking
 - **Psalm 5.0+**: Type checking
 - **composer-run-parallel**: Run multiple test suites in parallel
+
+### PHPUnit Version Strategy
+Since no single PHPUnit version supports PHP 7.3-8.4, we use conditional versions:
+- **PHP 7.3-8.0**: PHPUnit 9.5.x (stable, well-tested)
+- **PHP 8.1-8.4**: PHPUnit 10.0+ (modern PHP features, better performance)
 
 ---
 
@@ -275,10 +282,23 @@ services:
 test:
   strategy:
     matrix:
-      php-version: ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+      php-version: ['7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
       test-suite: ['unit', 'integration']
+      # Conditional PHPUnit versions
+      phpunit-version: ['9.5', '10.0']
+    exclude:
+      # PHPUnit 10.0 requires PHP 8.1+
+      - php-version: '7.3'
+        phpunit-version: '10.0'
+      - php-version: '7.4'
+        phpunit-version: '10.0'
+      - php-version: '8.0'
+        phpunit-version: '10.0'
   
   steps:
+    - name: Install PHPUnit ${{ matrix.phpunit-version }}
+      run: composer require --dev phpunit/phpunit:${{ matrix.phpunit-version }}
+    
     - name: Run tests
       run: |
         if [ "${{ matrix.test-suite }}" = "unit" ]; then
@@ -287,6 +307,13 @@ test:
           vendor/bin/phpunit --testsuite "Integration Tests"
         fi
 ```
+
+### Test Matrix Details
+- **Total combinations**: 7 PHP versions × 4 Joomla versions = 28
+- **Excluded combinations**: 8 (Joomla 5.4/6.1 PHP requirements)
+- **Actual test jobs**: 20
+- **PHP versions**: 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4
+- **PHPUnit versions**: 9.5 for PHP 7.3-8.0, 10.0 for PHP 8.1+
 
 ### Test Stages
 1. **Static Analysis**: PHPStan, Psalm, PHPCS
@@ -334,7 +361,7 @@ test:
 
 ### Phase 0: Setup (Immediate)
 1. Create test directory structure
-2. Add test dependencies to composer.json
+2. Add test dependencies to composer.json (PHPUnit 9.5|^10.0)
 3. Create phpunit.xml configuration
 4. Create test bootstrap file
 5. Create base TestCase class
@@ -352,12 +379,48 @@ test:
 
 ### Phase 3: CI/CD Enhancement (Polish)
 1. Add static analysis to CI
-2. Optimize test execution
+2. Optimize test execution with conditional PHPUnit versions
 3. Add coverage reporting
 
 ---
 
+## 🔍 PHP 7.3+ Decision Rationale
+
+### Why PHP 7.3+ Instead of 7.1+?
+
+**PHPUnit Compatibility Challenge**:
+- No single PHPUnit version supports PHP 7.1-8.4
+- PHPUnit 7.x: PHP 7.1-7.3 (EOL 2020)
+- PHPUnit 8.x: PHP 7.2+ (EOL 2023)
+- PHPUnit 9.x: PHP 7.3+ (EOL 2024)
+- PHPUnit 10.x: PHP 8.1+ (current)
+
+**Benefits of PHP 7.3+**:
+1. **Unified Testing**: PHPUnit 9.x works for PHP 7.3-8.0, PHPUnit 10.x for 8.1+
+2. **Simplified CI/CD**: No complex conditional PHPUnit version management needed
+3. **Modern PHP Features**: Access to modern PHP features in production code
+4. **Security**: PHP 7.1-7.2 are EOL and unsupported
+5. **Performance**: Newer PHP versions have significant performance improvements
+6. **Ecosystem**: Better library and framework support
+
+**Impact Analysis**:
+- **Lost Support**: PHP 7.1 (EOL Dec 2018), PHP 7.2 (EOL Nov 2019)
+- **Retained Support**: PHP 7.3-8.4 (actively maintained)
+- **Joomla Coverage**: All Joomla versions still supported (3.10, 4.4, 5.4, 6.1)
+- **Symfony Compatibility**: Symfony 4.4 already requires PHP 7.2.5+
+
+**Conclusion**: The trade-off is favorable - we lose two ancient PHP versions but gain significantly simplified testing infrastructure and better overall maintainability.
+
+---
+
 ## 📝 Key Decisions Made
+
+### PHP Version Support
+- **Minimum PHP**: 7.3+ (raised from 7.1+ to enable unified PHPUnit 9.x+)
+- **Rationale**: PHP 7.1-7.2 are EOL (2018-2019), Symfony 4.4 requires PHP 7.2.5+
+- **PHPUnit Strategy**: 
+  - PHP 7.3-8.0: PHPUnit 9.5.x (stable, well-tested)
+  - PHP 8.1-8.4: PHPUnit 10.0+ (modern PHP features, better performance)
 
 ### Autoloading Strategy
 - **Keep PSR-0**: Maintain compatibility with existing structure
