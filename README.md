@@ -12,6 +12,27 @@ Joomlatools Console
 * Composer
 * Joomla versions 3.5, 4.x, 5.x, and 6.x
 
+## PHP/Joomla Version Compatibility
+
+| PHP Version | Joomla 3.10 | Joomla 4.4 | Joomla 5.4 | Joomla 6.1 |
+|:------------|:-----------:|:----------:|:----------:|:----------:|
+| 7.1         | ✅          | ❌         | ❌         | ❌         |
+| 7.2         | ✅          | ✅         | ❌         | ❌         |
+| 7.3         | ✅          | ✅         | ❌         | ❌         |
+| 7.4         | ✅          | ✅         | ❌         | ❌         |
+| 8.0         | ✅          | ✅         | ❌         | ❌         |
+| 8.1         | ✅          | ✅         | ✅         | ❌         |
+| 8.2         | ✅          | ✅         | ✅         | ❌         |
+| 8.3         | ✅          | ✅         | ✅         | ✅         |
+| 8.4         | ✅          | ✅         | ✅         | ✅         |
+
+**Notes:**
+- ✅ = Supported combination
+- ❌ = Unsupported due to Joomla PHP requirements
+- Joomla 4.4 requires PHP 7.2.5+
+- Joomla 5.4 requires PHP 8.1+
+- Joomla 6.1 requires PHP 8.3+
+
 ## Installation
 
 1. Install using Composer:
