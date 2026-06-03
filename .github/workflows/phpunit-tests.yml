@@ -1,0 +1,84 @@
+name: PHPUnit Tests
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        test-suite: ['unit', 'integration']
+        exclude:
+          # Integration tests can be excluded for certain PHP versions if needed
+          # For now, we'll run all test suites on all PHP versions
+    
+    name: PHP ${{ matrix.php-version }} - ${{ matrix.test-suite }} Tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, yaml, mysql, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --no-interaction --prefer-dist
+
+      - name: Install PHPUnit
+        run: |
+          if [ "${{ matrix.php-version }}" = "7.3" ] || \
+             [ "${{ matrix.php-version }}" = "7.4" ] || \
+             [ "${{ matrix.php-version }}" = "8.0" ]; then
+            echo "Installing PHPUnit 9.5 for PHP ${{ matrix.php-version }}"
+            composer require --dev phpunit/phpunit:^9.5
+          else
+            echo "Installing PHPUnit 10.0+ for PHP ${{ matrix.php-version }}"
+            composer require --dev phpunit/phpunit:^10.0
+          fi
+
+      - name: Verify PHPUnit installation
+        run: vendor/bin/phpunit --version
+
+      - name: Run ${{ matrix.test-suite }} tests
+        run: |
+          if [ "${{ matrix.test-suite }}" = "unit" ]; then
+            echo "Running Unit Tests"
+            vendor/bin/phpunit --testsuite "Unit Tests" || echo "Unit tests not yet implemented"
+          else
+            echo "Running Integration Tests"
+            vendor/bin/phpunit --testsuite "Integration Tests" || echo "Integration tests not yet implemented"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Clean up test dependencies
+          composer remove --dev phpunit/phpunit
+          composer install

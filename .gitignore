@@ -7,4 +7,5 @@
 .phpunit.result.cache
 tests/coverage/
 tests/coverage.html
+tests/temp/
 clover.xml

@@ -1,0 +1,48 @@
+# Dockerfile for Testing Joomlatools Console
+# This Dockerfile is designed for CI/CD testing environments
+
+FROM php:7.3-cli
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libyaml-dev \
+    libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install mbstring pdo_mysql
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY . /app
+
+# Install project dependencies
+RUN composer install --no-progress --no-interaction --prefer-dist
+
+# Install PHPUnit based on PHP version
+RUN if [ $(php -r "echo PHP_VERSION_ID;") -lt 80100 ]; then \
+      echo "Installing PHPUnit 9.5 for PHP < 8.1"; \
+      composer require --dev phpunit/phpunit:^9.5; \
+    else \
+      echo "Installing PHPUnit 10.0+ for PHP >= 8.1"; \
+      composer require --dev phpunit/phpunit:^10.0; \
+    fi
+
+# Verify PHPUnit installation
+RUN vendor/bin/phpunit --version
+
+# Default command
+CMD ["/bin/bash"]
+
+# Notes:
+# - This Dockerfile uses PHP 7.3 as the base, but can be modified for other versions
+# - PHPUnit is installed based on the PHP version automatically
+# - This is designed for CI/CD testing, not local development
+# - For local development, use the CI workflow or your preferred testing environment
