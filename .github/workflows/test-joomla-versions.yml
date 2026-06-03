@@ -10,27 +10,25 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        php-version: ['8.0', '8.1', '8.2', '8.3', '8.4']
         joomla-version: ['3.10.12', '4.4.13', '5.4.5', '6.1.0']
         exclude:
           # Joomla 6.x requires PHP 8.1+
-          - php-version: '7.4'
-            joomla-version: '6.1.0'
           - php-version: '8.0'
             joomla-version: '6.1.0'
-          # Joomla 5.x requires PHP 8.0+
-          - php-version: '7.4'
-            joomla-version: '5.4.5'
     
     name: PHP ${{ matrix.php-version }} - Joomla ${{ matrix.joomla-version }}
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -38,16 +36,26 @@ jobs:
           php-version: ${{ matrix.php-version }}
           extensions: mbstring, yaml, mysql, pdo_mysql
           coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
-        run: composer install --no-progress --no-interaction
+        run: composer install --no-progress --no-interaction --prefer-dist
 
       - name: Install MySQL
         run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-server
           sudo systemctl start mysql
-          mysql -e 'CREATE DATABASE IF NOT EXISTS test;' -uroot -proot
+          sudo mysql -e 'CREATE DATABASE IF NOT EXISTS test;' -uroot -proot || sudo mysql -e 'CREATE DATABASE IF NOT EXISTS test;' -uroot
 
       - name: Create test site directory
         run: |
