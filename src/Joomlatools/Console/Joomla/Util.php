@@ -36,6 +36,16 @@ class Util
          return (bool) \version_compare(static::getJoomlaVersion($base)->release, '4.0.0', '>=');
     }
 
+    public static function isJoomla5($base): bool
+    {
+         return (bool) \version_compare(static::getJoomlaVersion($base)->release, '5.0.0', '>=');
+    }
+
+    public static function isJoomla6($base): bool
+    {
+         return (bool) \version_compare(static::getJoomlaVersion($base)->release, '6.0.0', '>=');
+    }
+
     public static function executeJ4CliCommand($base, $command): string
     {
         return static::executeCommand("php $base/cli/joomla.php $command");
@@ -68,7 +78,7 @@ class Util
                 }
 
                 //start to provide support for Joomla 4 onwards
-                if (defined( "$className::MAJOR_VERSION") && in_array($version::MAJOR_VERSION, ['4', '5'])){
+                if (defined( "$className::MAJOR_VERSION") && in_array($version::MAJOR_VERSION, ['4', '5', '6'])){
                     return  $version::MAJOR_VERSION . "." . $version::MINOR_VERSION . "." . $version::PATCH_VERSION . ($version::EXTRA_VERSION ? "." . $version::EXTRA_VERSION : '');
                 }
 

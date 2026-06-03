@@ -1,0 +1,98 @@
+name: Test Joomla Versions
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        joomla-version: ['3.10.12', '4.4.13', '5.4.5', '6.1.0']
+        exclude:
+          # Joomla 6.x requires PHP 8.1+
+          - php-version: '7.4'
+            joomla-version: '6.1.0'
+          - php-version: '8.0'
+            joomla-version: '6.1.0'
+          # Joomla 5.x requires PHP 8.0+
+          - php-version: '7.4'
+            joomla-version: '5.4.5'
+    
+    name: PHP ${{ matrix.php-version }} - Joomla ${{ matrix.joomla-version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, yaml, mysql, pdo_mysql
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --no-interaction
+
+      - name: Install MySQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-server
+          sudo systemctl start mysql
+          mysql -e 'CREATE DATABASE IF NOT EXISTS test;' -uroot -proot
+
+      - name: Create test site directory
+        run: |
+          sudo mkdir -p /var/www/test-site
+          sudo chown -R $USER:$USER /var/www
+
+      - name: Test Joomla site creation
+        run: |
+          php bin/joomla site:create test-site \
+            --release=${{ matrix.joomla-version }} \
+            --www=/var/www \
+            --sample-data=default \
+            --mysql-login=root:root \
+            --mysql-database=test_${{ matrix.php-version }}_${{ matrix.joomla-version }} \
+            --skip-create-statement
+
+      - name: Test version detection
+        run: |
+          php bin/joomla versions --refresh
+
+      - name: Verify Joomla installation
+        run: |
+          if [ -d "/var/www/test-site" ]; then
+            echo "Joomla site directory created successfully"
+            ls -la /var/www/test-site
+          else
+            echo "Joomla site directory not found"
+            exit 1
+          fi
+
+      - name: Test version detection code
+        run: |
+          php -r "
+          require 'vendor/autoload.php';
+          // Test version comparison logic
+          \$versions = ['3.10.0', '4.0.0', '5.0.0', '6.0.0'];
+          foreach (\$versions as \$version) {
+              \$isGte4 = version_compare(\$version, '4.0.0', '>=');
+              \$isGte6 = version_compare(\$version, '6.0.0', '>=');
+              echo \"Version \$version: >=4.0.0 = \" . (\$isGte4 ? 'true' : 'false') . \", >=6.0.0 = \" . (\$isGte6 ? 'true' : 'false') . \"\n\";
+          }
+          "
+
+      - name: Cleanup
+        if: always()
+        run: |
+          php bin/joomla site:delete test-site --www=/var/www || true
+          mysql -e 'DROP DATABASE IF EXISTS test_${{ matrix.php-version }}_${{ matrix.joomla-version }};' -uroot -proot || true
